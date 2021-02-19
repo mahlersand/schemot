@@ -7,5 +7,16 @@
 
 #pragma once
 
-#include "ParameterPacks.h"
-#include "SchemotPack.h"
+#include "TypePack.h"
+#include "ValuePack.h"
+
+namespace schemot {
+  template<typename ...T>
+  schemot::TypePack<T ...> __pp();
+
+  template<auto ...I>
+  schemot::ValuePack<I ...> __pp();
+
+  #define SchemotPack(...) decltype(schemot::__pp<__VA_ARGS__>())
+}
+
