@@ -8,11 +8,10 @@ CONFIG += staticlib c++2a
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 HEADERS += \
-    ParameterPacks.h \
-    SchemotPack.h \
-    schemot.h \
-    TypePack.h \
-    ValuePack.h
+    include/SchemotPack.hpp \
+    include/schemot.hpp \
+    include/TypePack.hpp \
+    include/ValuePack.hpp
 
 # Default rules for deployment.
 unix {

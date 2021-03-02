@@ -8,46 +8,68 @@
 #pragma once
 
 #include <type_traits>
-#include "ParameterPacks.h"
 
 namespace schemot {
 
-  //! SchemotPack containing compile-time values
+  template<auto ...>
+  struct ValuePackBase;
+
   template<auto ...>
   struct ValuePack;
 
 
-  /*! Concatenation of ValuePacks */
-  template<auto ...PackL, auto ...PackR>
-  ValuePack<PackL ..., PackR ...> __concat_helper(ValuePack<PackL ...>, ValuePack<PackR ...>);
+  namespace __helpers {
+    namespace __ValuePack {
+      template<typename Container>
+      struct packify_helper;
 
-  template<typename Pack1, typename Pack2, typename ...PackTail>
-  decltype (__concat_helper(Pack1(), __concat_helper(Pack2(), PackTail() ...))) __concat_helper(Pack1, Pack2, PackTail ...Tail);
+      template<template<auto ...> typename Container, auto ...Parameters>
+      struct packify_helper<Container<Parameters ...>>
+      {
+        using type = ValuePack<Parameters ...>;
+      };
 
-  template<typename ...Packs>
-  using ValuePackConcat = decltype (__concat_helper(Packs() ...));
-  /* template<typename  ...Packs>
-  using ValuePackConcat = std::conditional_t<sizeof... (Packs) == 0,
-                            ValuePack<>,
-                            std::conditional_t<sizeof... (Packs) == 1,
-                              schemot::First<Packs ...>,
-                              ValuePackConcat<ValuePackConcat2>
-                              >>*/
+      template<typename ...Packs>
+      struct concatenate_helper;
+
+      template<>
+      struct concatenate_helper<>
+      {
+        using type = ValuePack<>;
+      };
+
+      template<auto ...Parameters>
+      struct concatenate_helper<ValuePack<Parameters ...>>
+      {
+        using type = ValuePack<Parameters ...>;
+      };
+
+      template<auto ...Parameters1, auto ...Parameters2, typename ...OtherPacks>
+      struct concatenate_helper<ValuePack<Parameters1 ...>, ValuePack<Parameters2 ...>, OtherPacks ...>
+      {
+        using type = typename concatenate_helper<ValuePack<Parameters1 ..., Parameters2 ...>, OtherPacks ...>::type;
+      };
+    }
+  }
 
 
   /*! Quicksort for ValuePacks */
   template<typename Pack>
   using Sort = std::conditional_t<Pack::same(),
                     Pack,
-                    ValuePackConcat<typename Pack::SortLess, typename Pack::SortEquals, typename Pack::SortGreater>>;
+                    typename Pack::SortLess::template AppendPacks<typename Pack::SortEquals, typename Pack::SortGreater>>;
 
-
-  //! Valuecount-agnostic TypePack
+  //! Valuecount-agnostic ValuePack
   template<auto ...MValues>
   struct ValuePackBase
   {
+    using This = ValuePack<MValues ...>;
+
     template<auto ...Values>
     using Append = ValuePack<MValues ..., Values ...>;
+
+    template<typename ...Packs>
+    using AppendPacks = typename __helpers::__ValuePack::concatenate_helper<This, Packs ...>::type;
 
     template<auto ...Values>
     using Prepend = ValuePack<Values ..., MValues ...>;
@@ -64,8 +86,8 @@ namespace schemot {
     static bool consteval same()
     requires (sizeof... (MValues) >= 2)
     {
-      return (ValuePack<MValues ...>::Head == ValuePack<MValues ...>::Tail::Head)
-          && (ValuePack<MValues ...>::Tail::same());
+      return (This::Head == This::Tail::Head)
+          && (This::Tail::same());
     }
   };
 
@@ -130,6 +152,7 @@ namespace schemot {
 
     //! sorting filtered list
     using SortLess    = Sort<FilterLess<Head>>;
+    //Already sorted! Cannot call sort, lest recursion breaketh thine algorithm
     using SortEquals  = FilterEquals<Head>;
     using SortGreater = Sort<FilterGreater<Head>>;
   };
