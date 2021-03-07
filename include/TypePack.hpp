@@ -70,6 +70,9 @@ namespace schemot {
     template<typename ...Types>
     using Prepend = TypePack<Types ..., MTypes ...>;
 
+    template<typename ...Packs>
+    using PrependPacks = typename __helpers::__TypePack::concatenate_helper<Packs ..., This>::type;
+
     template<template<typename ...> typename Container>
     using Typeify = Container<MTypes ...>;
   };

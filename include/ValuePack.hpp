@@ -49,13 +49,39 @@ namespace schemot {
       {
         using type = typename concatenate_helper<ValuePack<Parameters1 ..., Parameters2 ...>, OtherPacks ...>::type;
       };
+
+      template<typename T>
+      struct same_helper;
+
+      template<auto Par1, auto ...Pars>
+      struct same_helper<ValuePack<Par1, Pars ...>>
+      {
+        static auto const value = ((Par1 == Pars) && ...);
+      };
+
+      template<auto Par>
+      struct same_helper<ValuePack<Par>>
+      {
+        static auto const value = true;
+      };
+
+      template<>
+      struct same_helper<ValuePack<>>
+      {
+        static auto const value = true;
+      };
     }
   }
 
+  template<typename T>
+  bool consteval same()
+  {
+    return __helpers::__ValuePack::same_helper<T>::value;
+  }
 
   /*! Quicksort for ValuePacks */
   template<typename Pack>
-  using Sort = std::conditional_t<Pack::same(),
+  using Sort = std::conditional_t<schemot::same<Pack>(),
                     Pack,
                     typename Pack::SortLess::template AppendPacks<typename Pack::SortEquals, typename Pack::SortGreater>>;
 
@@ -76,19 +102,6 @@ namespace schemot {
 
     template<template<auto ...> typename Container>
     using Typeify = Container<MValues ...>;
-
-    static bool consteval same()
-    requires (sizeof... (MValues) < 2)
-    {
-      return true;
-    }
-
-    static bool consteval same()
-    requires (sizeof... (MValues) >= 2)
-    {
-      return (This::Head == This::Tail::Head)
-          && (This::Tail::same());
-    }
   };
 
   //! 0-value TypePack Case
