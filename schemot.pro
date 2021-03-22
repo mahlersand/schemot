@@ -9,6 +9,7 @@ CONFIG += staticlib c++2a
 
 HEADERS += \
     include/SchemotPack.hpp \
+    include/packs_common.h \
     include/schemot.hpp \
     include/TypePack.hpp \
     include/ValuePack.hpp

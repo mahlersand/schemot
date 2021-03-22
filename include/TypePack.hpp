@@ -10,6 +10,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "packs_common.h"
+
 namespace schemot {
 
   template<typename ...>
@@ -20,15 +22,6 @@ namespace schemot {
 
   namespace __helpers {
     namespace __TypePack {
-      template<typename Container>
-      struct packify_helper;
-
-      template<template<typename ...> typename Container, typename ...Parameters>
-      struct packify_helper<Container<Parameters ...>>
-      {
-        using type = TypePack<Parameters ...>;
-      };
-
       template<typename ...Packs>
       struct concatenate_helper;
 
@@ -75,6 +68,8 @@ namespace schemot {
 
     template<template<typename ...> typename Container>
     using Typeify = Container<MTypes ...>;
+
+    static constexpr bool same = __helpers::__packs_common::same_helper_v<This>;
   };
 
   //! 0-type TypePack Case
@@ -101,11 +96,8 @@ namespace schemot {
     using Reverse = typename TypePack<TypeTail ...>::Reverse::template Append<TypeHead>;
 
     using Head = TypeHead;
-
     using Tail = TypePack<TypeTail ...>;
-
     using Init = typename Reverse::Tail::Reverse;
-
     using Last = typename Reverse::Head;
 
     template<typename T>

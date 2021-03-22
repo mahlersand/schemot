@@ -9,6 +9,8 @@
 
 #include <type_traits>
 
+#include "packs_common.h"
+
 namespace schemot {
 
   template<auto ...>
@@ -20,15 +22,6 @@ namespace schemot {
 
   namespace __helpers {
     namespace __ValuePack {
-      template<typename Container>
-      struct packify_helper;
-
-      template<template<auto ...> typename Container, auto ...Parameters>
-      struct packify_helper<Container<Parameters ...>>
-      {
-        using type = ValuePack<Parameters ...>;
-      };
-
       template<typename ...Packs>
       struct concatenate_helper;
 
@@ -49,39 +42,12 @@ namespace schemot {
       {
         using type = typename concatenate_helper<ValuePack<Parameters1 ..., Parameters2 ...>, OtherPacks ...>::type;
       };
-
-      template<typename T>
-      struct same_helper;
-
-      template<auto Par1, auto ...Pars>
-      struct same_helper<ValuePack<Par1, Pars ...>>
-      {
-        static auto const value = ((Par1 == Pars) && ...);
-      };
-
-      template<auto Par>
-      struct same_helper<ValuePack<Par>>
-      {
-        static auto const value = true;
-      };
-
-      template<>
-      struct same_helper<ValuePack<>>
-      {
-        static auto const value = true;
-      };
     }
-  }
-
-  template<typename T>
-  bool consteval same()
-  {
-    return __helpers::__ValuePack::same_helper<T>::value;
   }
 
   /*! Quicksort for ValuePacks */
   template<typename Pack>
-  using Sort = std::conditional_t<schemot::same<Pack>(),
+  using Sort = std::conditional_t<__helpers::__packs_common::same_helper_v<Pack>,
                     Pack,
                     typename Pack::SortLess::template AppendPacks<typename Pack::SortEquals, typename Pack::SortGreater>>;
 
@@ -100,8 +66,13 @@ namespace schemot {
     template<auto ...Values>
     using Prepend = ValuePack<Values ..., MValues ...>;
 
+    template<typename ...Packs>
+    using PrependPacks = typename __helpers::__ValuePack::concatenate_helper<Packs ..., This>::type;
+
     template<template<auto ...> typename Container>
     using Typeify = Container<MValues ...>;
+
+    static constexpr bool same = __helpers::__packs_common::same_helper_v<This>;
   };
 
   //! 0-value TypePack Case
@@ -124,9 +95,7 @@ namespace schemot {
 
     //! sorting filtered list
     using SortLess = ValuePack<>;
-
     using SortEquals = ValuePack<>;
-
     using SortGreater = ValuePack<>;
   };
 
@@ -140,11 +109,8 @@ namespace schemot {
 
     //! list selection
     static auto const Head = MValueHead;
-
     using Tail = ValuePack<MValueTail ...>;
-
     using Init = typename ValuePack<MValueHead, MValueTail ...>::Reverse::Tail::Reverse;
-
     static auto const Last = ValuePack<MValueHead, MValueTail ...>::Reverse::Head;
 
     //! list filtering
@@ -165,8 +131,7 @@ namespace schemot {
 
     //! sorting filtered list
     using SortLess    = Sort<FilterLess<Head>>;
-    //Already sorted! Cannot call sort, lest recursion breaketh thine algorithm
-    using SortEquals  = FilterEquals<Head>;
+    using SortEquals  = FilterEquals<Head>; //Already sorted! Cannot call sort, lest recursion breaketh thine algorithm
     using SortGreater = Sort<FilterGreater<Head>>;
   };
 }
